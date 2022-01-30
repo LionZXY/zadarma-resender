@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gravitymir/zadarma-golang/zadarma"
 	"time"
 )
@@ -55,6 +56,37 @@ func getCalls() (CatchStatisticsABX, error) {
 	return statistics, nil
 }
 
-func getCallUrl() (string, error) {
-	return "", nil
+//CallRecord https://zadarma.com/ru/support/api/#api_pbx_record_request
+type CallRecord struct {
+	Status   string `json:"status"`
+	Link     string `json:"link"`
+	Lifetime string `json:"lifetime_till"`
+}
+
+func getRecordUrl(callId string) (CallRecord, error) {
+	recordRequest := zadarma.New{
+		APIMethod:    "/v1/pbx/record/request/",
+		APIUserKey:   cfg.ZadarmaUserKey,
+		APISecretKey: cfg.ZadarmaSecretKey,
+		ParamsMap: map[string]string{
+			"call_id": callId,
+		},
+	}
+
+	var recordResponse []byte
+
+	if err := recordRequest.Request(&recordResponse); err != nil {
+		return CallRecord{}, err
+	}
+
+	callRecord := CallRecord{}
+	if err := json.Unmarshal(recordResponse, &callRecord); err != nil {
+		return callRecord, err
+	}
+
+	if callRecord.Status != "success" {
+		return callRecord, errors.New("call request failed")
+	}
+
+	return callRecord, nil
 }

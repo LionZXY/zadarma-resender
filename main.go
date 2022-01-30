@@ -40,6 +40,11 @@ func checkNewCalls() {
 			continue
 		}
 		log.Println("Posting...", call.CallId)
+		recordUrl, err := getRecordUrl(call.CallId)
+		if err != nil {
+			log.Fatalln("Error get record url for", call.CallId, err)
+		}
+		log.Println("Record url is", recordUrl)
 	}
 }
 
