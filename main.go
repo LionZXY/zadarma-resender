@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-redis/redis/v8"
+	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
+	"time"
 )
 
 var cfg config
 var r *redis.Client
+var tg *tb.Bot
 
 func main() {
 	if err := env.Parse(&cfg); err != nil {
@@ -19,6 +22,17 @@ func main() {
 	r = redis.NewClient(&redis.Options{
 		Addr: cfg.DBAddr,
 	})
+
+	var err error
+
+	tg, err = tb.NewBot(tb.Settings{
+		Token:  cfg.TelegramToken,
+		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
+	})
+
+	if err != nil {
+		log.Fatalln("Telegram", err)
+	}
 
 	checkNewCalls()
 }
@@ -48,9 +62,19 @@ func checkNewCalls() {
 		log.Println("Record url is", recordUrl)
 		path, err := convertToOgg(recordUrl.Link)
 		if err != nil {
-			log.Fatalln("Error while convert file to ogg", err)
+			log.Println("Error while convert file to ogg", err, recordUrl.Link)
 			return
 		}
+		_, err = tg.Send(tb.ChatID(cfg.ChannelID), &tb.Voice{
+			File: tb.File{FileLocal: path},
+		})
+
+		if err != nil {
+			log.Println("Send audio", err)
+			return
+		}
+		markPosted(call.CallId)
+		log.Println("Posted!")
 	}
 }
 

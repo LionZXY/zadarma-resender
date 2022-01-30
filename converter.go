@@ -7,10 +7,12 @@ import (
 func convertToOgg(recordUrl string) (string, error) {
 	outputPath := "/tmp/record.ogg"
 	format := "ogg"
+	codec := "libopus"
 	overwrite := true
 
 	opts := ffmpeg.Options{
 		OutputFormat: &format,
+		AudioCodec:   &codec,
 		Overwrite:    &overwrite,
 	}
 
