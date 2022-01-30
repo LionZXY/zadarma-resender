@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -50,6 +51,9 @@ func checkNewCalls() {
 		if call.IsRecorded != "true" {
 			continue
 		}
+		if call.Disposition != "answered" {
+			continue
+		}
 		if wasAlreadyPosted(call.CallId) {
 			continue
 		}
@@ -66,14 +70,16 @@ func checkNewCalls() {
 			return
 		}
 		_, err = tg.Send(tb.ChatID(cfg.ChannelID), &tb.Voice{
-			File: tb.File{FileLocal: path},
+			File:     tb.FromDisk(path),
+			Duration: call.Seconds,
+			Caption:  call.Clid + " -> " + strconv.Itoa(call.Destination),
 		})
 
 		if err != nil {
 			log.Println("Send audio", err)
 			return
 		}
-		markPosted(call.CallId)
+		//markPosted(call.CallId)
 		log.Println("Posted!")
 	}
 }
