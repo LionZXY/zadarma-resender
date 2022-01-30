@@ -6,6 +6,7 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/gravitymir/zadarma-golang/zadarma"
 	"log"
+	"time"
 )
 
 var cfg config
@@ -25,13 +26,17 @@ func main() {
 }
 
 func getCalls() (CatchStatisticsABX, error) {
+	formatString := "2006-01-02 03:04:05"
+	now := time.Now()
+	dayBefore := now.AddDate(0, -1, 0)
+
 	statisticRequest := zadarma.New{
 		APIMethod:    "/v1/statistics/pbx/",
 		APIUserKey:   cfg.ZadarmaUserKey,
 		APISecretKey: cfg.ZadarmaSecretKey,
 		ParamsMap: map[string]string{
-			"start":   "2022-01-01 00:00:00",
-			"end":     "2022-01-19 23:59:00",
+			"start":   dayBefore.Format(formatString),
+			"end":     now.Format(formatString),
 			"version": "2",
 		},
 	}
