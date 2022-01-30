@@ -4,55 +4,43 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/caarlos0/env/v6"
-	"github.com/gravitymir/zadarma-golang/zadarma"
+	"github.com/go-redis/redis/v8"
 	"log"
-	"time"
 )
 
 var cfg config
+var r *redis.Client
 
 func main() {
 	if err := env.Parse(&cfg); err != nil {
 		log.Fatalln("Config", err)
 	}
 
+	r = redis.NewClient(&redis.Options{
+		Addr: cfg.DBAddr,
+	})
+
+	checkNewCalls()
+}
+
+func checkNewCalls() {
 	statistics, err := getCalls()
 
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		log.Println("Calls", err)
+		return
 	}
-
 	prettyPrint(statistics)
-}
 
-func getCalls() (CatchStatisticsABX, error) {
-	formatString := "2006-01-02 03:04:05"
-	now := time.Now()
-	dayBefore := now.AddDate(0, -1, 0)
-
-	statisticRequest := zadarma.New{
-		APIMethod:    "/v1/statistics/pbx/",
-		APIUserKey:   cfg.ZadarmaUserKey,
-		APISecretKey: cfg.ZadarmaSecretKey,
-		ParamsMap: map[string]string{
-			"start":   dayBefore.Format(formatString),
-			"end":     now.Format(formatString),
-			"version": "2",
-		},
+	for _, call := range statistics.Stats {
+		if call.IsRecorded != "true" {
+			continue
+		}
+		if wasAlreadyPosted(call.CallId) {
+			continue
+		}
+		log.Println("Posting...", call.CallId)
 	}
-
-	var statisticResponse []byte
-
-	if err := statisticRequest.Request(&statisticResponse); err != nil {
-		return CatchStatisticsABX{}, err
-	}
-
-	statistics := CatchStatisticsABX{}
-	if err := json.Unmarshal(statisticResponse, &statistics); err != nil {
-		return statistics, err
-	}
-
-	return statistics, nil
 }
 
 func prettyPrint(data interface{}) {
