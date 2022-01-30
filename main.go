@@ -43,8 +43,14 @@ func checkNewCalls() {
 		recordUrl, err := getRecordUrl(call.CallId)
 		if err != nil {
 			log.Fatalln("Error get record url for", call.CallId, err)
+			return
 		}
 		log.Println("Record url is", recordUrl)
+		path, err := convertToOgg(recordUrl.Link)
+		if err != nil {
+			log.Fatalln("Error while convert file to ogg", err)
+			return
+		}
 	}
 }
 
